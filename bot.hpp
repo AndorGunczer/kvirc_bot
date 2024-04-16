@@ -6,7 +6,7 @@
 /*   By: agunczer <agunczer@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/15 15:50:30 by agunczer          #+#    #+#             */
-/*   Updated: 2024/04/16 12:17:28 by agunczer         ###   ########.fr       */
+/*   Updated: 2024/04/16 14:52:27 by agunczer         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,7 +31,7 @@ class Bot {
         std::string _USER;
         std::string _REALNAME;
         std::string _PASSWORD;
-
+    
     public:
         Bot();
         Bot(std::string IP_ADDR, int PORT, std::string CHANNEL);

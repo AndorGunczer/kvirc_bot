@@ -6,7 +6,7 @@
 /*   By: agunczer <agunczer@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/15 16:00:36 by agunczer          #+#    #+#             */
-/*   Updated: 2024/04/16 13:58:03 by agunczer         ###   ########.fr       */
+/*   Updated: 2024/04/16 15:12:14 by agunczer         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,10 @@
 #include "bot.hpp"
 #include <sstream>
 #include <vector>
+#include <signal.h>
+
+bool signalState = false;
+int sockfd;
 
 void send_message(int sockfd, const char* message) {
     std::string msg = std::string(message) + "\r\n";
@@ -73,11 +77,23 @@ std::string checkOPME(Bot *botInstance, std::string input)
 // Received: :test!agunczer@irc.localhost.net PRIVMSG bitchbot :opme steven password
 // QUIT :KVIrc 5.0.0 Aria http://www.kvirc.net/
 
+static void signalHandler(int signum)
+{
+    std::cout << signum << std::endl;
+    (void)signum;
+    // signalState = true;
+    std::cout << "please quit" << std::endl;
+    send_message(sockfd, "QUIT :KVIrc 5.0.0 Aria http://www.kvirc.net/");
+    exit(1);
+}
+
 #define CRLF "/r/n"
 int main() {
+    // signalState = false;
+    signal(SIGINT, signalHandler);
     Bot bot("127.0.0.1", 3000, "#wedogreat");
     // Bot bot;
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         std::cerr << "Error creating socket" << std::endl;
         return 1;
@@ -131,6 +147,14 @@ int main() {
     char buffer[1024];
     while (true) {
         bzero(buffer, 1024);
+        std::cout << signalState << std::endl;
+        // if (signalState == true)
+        // {
+        //     std::cout << "please quit" << std::endl;
+        //     send_message(sockfd, "QUIT :KVIrc 5.0.0 Aria http://www.kvirc.net/");
+        //     exit(1);
+        //     break;
+        // }
         int bytesReceived = recv(sockfd, buffer, 1024, 0);
         if (bytesReceived < 0) {
             std::cerr << "Error receiving data" << std::endl;
