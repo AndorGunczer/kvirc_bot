@@ -6,7 +6,7 @@
 /*   By: agunczer <agunczer@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/15 15:50:30 by agunczer          #+#    #+#             */
-/*   Updated: 2024/04/15 16:14:50 by agunczer         ###   ########.fr       */
+/*   Updated: 2024/04/16 12:17:28 by agunczer         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,7 @@ class Bot {
         std::string _NICK;
         std::string _USER;
         std::string _REALNAME;
+        std::string _PASSWORD;
 
     public:
         Bot();
@@ -43,6 +44,7 @@ class Bot {
         const std::string &getNick();
         const std::string &getUser();
         const std::string &getRealName();
+        const std::string &getPassword();
 };
 
 

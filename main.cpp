@@ -6,7 +6,7 @@
 /*   By: agunczer <agunczer@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/15 16:00:36 by agunczer          #+#    #+#             */
-/*   Updated: 2024/04/15 16:28:43 by agunczer         ###   ########.fr       */
+/*   Updated: 2024/04/16 13:58:03 by agunczer         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,15 +17,66 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include "bot.hpp"
+#include <sstream>
+#include <vector>
 
 void send_message(int sockfd, const char* message) {
     std::string msg = std::string(message) + "\r\n";
     send(sockfd, msg.c_str(), msg.length(), 0);
 }
+
+std::vector<std::string> splitString(const std::string &str)
+{
+	std::istringstream iss(str);
+	std::vector<std::string> tokens;
+	std::string token;
+
+	while (iss >> token)
+	{
+		tokens.push_back(token);
+	}
+
+	return tokens;
+}
+
+bool checkPassword(Bot *botInstance, std::pair<std::string, std::string> credentials)
+{
+    if (credentials.second == botInstance->getPassword())
+        return true;
+    else
+        return false;
+}
+
+std::string checkOPME(Bot *botInstance, std::string input)
+{
+    std::vector<std::string> commandExtract = splitString(input);
+    if (commandExtract.size() == 6)
+        commandExtract.erase(commandExtract.begin(), commandExtract.end()-4);
+    else
+        return "";
+    
+    if(commandExtract[0] == "bitchbot")
+    {
+        if (commandExtract[1] == ":opme")
+        {
+            std::pair<std::string, std::string> credentials(commandExtract[2], commandExtract[3]);
+            if(checkPassword(botInstance, credentials))
+            {
+                return ("MODE " + botInstance->getChannel() + " +o " + credentials.first + "\r\n");
+            }
+        }
+    }
+    return "";
+}
+
+// bitchbot sends: MODE #wedogreat +o test
+// Received: :test!agunczer@irc.localhost.net PRIVMSG bitchbot :opme steven password
+// QUIT :KVIrc 5.0.0 Aria http://www.kvirc.net/
+
 #define CRLF "/r/n"
 int main() {
-    // Bot bot("127.0.0.1", 3000, "#wedogreat");
-    Bot bot;
+    Bot bot("127.0.0.1", 3000, "#wedogreat");
+    // Bot bot;
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         std::cerr << "Error creating socket" << std::endl;
@@ -79,6 +130,7 @@ int main() {
     // Receive and process messages (loop)
     char buffer[1024];
     while (true) {
+        bzero(buffer, 1024);
         int bytesReceived = recv(sockfd, buffer, 1024, 0);
         if (bytesReceived < 0) {
             std::cerr << "Error receiving data" << std::endl;
@@ -91,8 +143,11 @@ int main() {
         } else {
             // Process received data (parse IRC messages, handle commands, etc.)
             buffer[bytesReceived] = '\0'; // Null-terminate the received data
-            std::cout << "Received: " << buffer << std::endl;
-            // Add your message parsing and handling logic here
+            std::string received = buffer;
+            std::cout << "Received: " << received << std::endl;
+            std::string opString = checkOPME(&bot, received);
+            if (opString != "")
+                send_message(sockfd, opString.c_str());
         }
     }
 
