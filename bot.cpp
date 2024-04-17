@@ -6,7 +6,7 @@
 /*   By: agunczer <agunczer@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/15 15:50:35 by agunczer          #+#    #+#             */
-/*   Updated: 2024/04/16 12:17:56 by agunczer         ###   ########.fr       */
+/*   Updated: 2024/04/17 15:28:37 by agunczer         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,13 @@ Bot::Bot(const Bot &copy)
 
 const Bot &Bot::operator=(const Bot &assignment)
 {
-    *this = assignment;
+    this->_IP_ADDR = assignment._IP_ADDR;
+    this->_PORT = assignment._PORT;
+    this->_CHANNEL = assignment._CHANNEL;
+    this->_NICK = assignment._NICK;
+    this->_USER = assignment._USER;
+    this->_REALNAME = assignment._REALNAME;
+    this->_PASSWORD = assignment._PASSWORD;
     
     return *this;
 }

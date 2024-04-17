@@ -6,7 +6,7 @@
 /*   By: agunczer <agunczer@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/15 16:00:36 by agunczer          #+#    #+#             */
-/*   Updated: 2024/04/17 15:11:32 by agunczer         ###   ########.fr       */
+/*   Updated: 2024/04/17 15:24:58 by agunczer         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -199,25 +199,8 @@ int main() {
             int receiveStatus = handleReceive(&bot, bytesReceived, buffer);
             if (receiveStatus == 1)
                 return 1;
-            // if (bytesReceived < 0) {
-            // std::cerr << "Error receiving data" << std::endl;
-            // close(sockfd);
-            // return 1;
-            // } else if (bytesReceived == 0) {
-            //     std::cout << "Disconnected from server" << std::endl;
-            //     close(sockfd);
-            //     return 0;
-            // } else {
-            //     // Process received data (parse IRC messages, handle commands, etc.)
-            //     buffer[bytesReceived] = '\0'; // Null-terminate the received data
-            //     std::string received = buffer;
-            //     std::cout << "Received: " << received << std::endl;
-            //     std::string opString = checkOPME(&bot, received);
-            //     if (opString != "")
-            //         send_message(sockfd, opString.c_str());
-            // }
         }
-        // int bytesReceived = recv(sockfd, buffer, 1024, 0);
+
         // Clear the file descriptor set for the next iteration
         FD_ZERO(&readfds);
         FD_SET(sockfd, &readfds);
