@@ -6,7 +6,7 @@
 /*   By: agunczer <agunczer@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/15 16:00:36 by agunczer          #+#    #+#             */
-/*   Updated: 2024/04/17 15:24:58 by agunczer         ###   ########.fr       */
+/*   Updated: 2024/04/17 15:34:04 by agunczer         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,6 +96,41 @@ int handleReceive(Bot *bot, int bytesReceived, char buffer[1024])
     }
 }
 
+void startConnection(Bot *bot)
+{
+    char BUFFER[1024];
+    send_message(sockfd, ("CAP LS\r\n"));
+    while (recv(sockfd, BUFFER, sizeof(BUFFER), 0) < 0) {
+        sleep(1);
+    }
+    bzero(BUFFER, 1024);
+    send_message(sockfd, ("CAP REQ :multi-prefix\r\n"));
+    while (recv(sockfd, BUFFER, sizeof(BUFFER), 0) < 0) {
+        sleep(1);
+    }
+    bzero(BUFFER, 1024);
+    send_message(sockfd, ("CAP END\r\n"));
+    bzero(BUFFER, 1024);
+    // Send NICK and USER commands to identify with the server
+    send_message(sockfd, (("PASS :12345\nNICK " + std::string(bot->getNick()) + "\n" + "USER " + std::string(bot->getUser()) + " 0 irc.localhost.net :" + std::string(bot->getRealName())) + "\r\n").c_str());
+    bzero(BUFFER, 1024);
+    while (recv(sockfd, BUFFER, sizeof(BUFFER), 0) < 0) {
+        sleep(1);
+    }
+    bzero(BUFFER, 1024);
+
+    // Join the channel
+    bzero(BUFFER, 1024);
+    send_message(sockfd, (("JOIN " + std::string(bot->getChannel()) + " 12345\r\n").c_str()));
+    while (recv(sockfd, BUFFER, sizeof(BUFFER), 0) < 0) {
+        sleep(1);
+    }
+    std::cout << BUFFER << std::endl;
+    bzero(BUFFER, 1024);
+    // Send a message to the channel
+    send_message(sockfd, (("PRIVMSG " + std::string(bot->getChannel()) + " :Hello, I'm a bot!") + "\r\n").c_str());
+}
+
 // bitchbot sends: MODE #wedogreat +o test
 // Received: :test!agunczer@irc.localhost.net PRIVMSG bitchbot :opme steven password
 // QUIT :KVIrc 5.0.0 Aria http://www.kvirc.net/
@@ -130,39 +165,9 @@ int main() {
         return 1;
     }
 
-    char BUFFER[1024];
-    send_message(sockfd, ("CAP LS\r\n"));
-    while (recv(sockfd, BUFFER, sizeof(BUFFER), 0) < 0) {
-        sleep(1);
-    }
-    bzero(BUFFER, 1024);
-    send_message(sockfd, ("CAP REQ :multi-prefix\r\n"));
-    while (recv(sockfd, BUFFER, sizeof(BUFFER), 0) < 0) {
-        sleep(1);
-    }
-    bzero(BUFFER, 1024);
-    send_message(sockfd, ("CAP END\r\n"));
-    bzero(BUFFER, 1024);
-    // Send NICK and USER commands to identify with the server
-    send_message(sockfd, (("PASS :12345\nNICK " + std::string(bot.getNick()) + "\n" + "USER " + std::string(bot.getUser()) + " 0 irc.localhost.net :" + std::string(bot.getRealName())) + "\r\n").c_str());
-    bzero(BUFFER, 1024);
-    while (recv(sockfd, BUFFER, sizeof(BUFFER), 0) < 0) {
-        sleep(1);
-    }
-    bzero(BUFFER, 1024);
-
-    // Join the channel
-    bzero(BUFFER, 1024);
-    send_message(sockfd, (("JOIN " + std::string(bot.getChannel()) + " 12345\r\n").c_str()));
-    while (recv(sockfd, BUFFER, sizeof(BUFFER), 0) < 0) {
-        sleep(1);
-    }
-    std::cout << "Nachricht vom Server:" << BUFFER << std::endl;
-    bzero(BUFFER, 1024);
-    // Send a message to the channel
-    send_message(sockfd, (("PRIVMSG " + std::string(bot.getChannel()) + " :Hello, I'm a bot!") + "\r\n").c_str());
+    // Sets up connection to server
+    startConnection(&bot);
     // Receive and process messages (loop)
-    
     //INITIALIZE SET TO MONITOR FOR READABILITY
     fd_set readfds;
     FD_ZERO(&readfds);
