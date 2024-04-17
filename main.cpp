@@ -6,7 +6,7 @@
 /*   By: agunczer <agunczer@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/15 16:00:36 by agunczer          #+#    #+#             */
-/*   Updated: 2024/04/16 15:12:14 by agunczer         ###   ########.fr       */
+/*   Updated: 2024/04/17 15:11:32 by agunczer         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 #include <sstream>
 #include <vector>
 #include <signal.h>
+#include <sys/select.h>
 
 bool signalState = false;
 int sockfd;
@@ -73,6 +74,28 @@ std::string checkOPME(Bot *botInstance, std::string input)
     return "";
 }
 
+int handleReceive(Bot *bot, int bytesReceived, char buffer[1024])
+{
+    if (bytesReceived < 0) {
+        std::cerr << "Error receiving data" << std::endl;
+        close(sockfd);
+        return 1;
+    } else if (bytesReceived == 0) {
+        std::cout << "Disconnected from server" << std::endl;
+        close(sockfd);
+        return 1;
+    } else {
+        // Process received data (parse IRC messages, handle commands, etc.)
+        buffer[bytesReceived] = '\0'; // Null-terminate the received data
+        std::string received = buffer;
+        std::cout << "Received: " << received << std::endl;
+        std::string opString = checkOPME(bot, received);
+        if (opString != "")
+            send_message(sockfd, opString.c_str());
+        return 0;
+    }
+}
+
 // bitchbot sends: MODE #wedogreat +o test
 // Received: :test!agunczer@irc.localhost.net PRIVMSG bitchbot :opme steven password
 // QUIT :KVIrc 5.0.0 Aria http://www.kvirc.net/
@@ -82,9 +105,6 @@ static void signalHandler(int signum)
     std::cout << signum << std::endl;
     (void)signum;
     // signalState = true;
-    std::cout << "please quit" << std::endl;
-    send_message(sockfd, "QUIT :KVIrc 5.0.0 Aria http://www.kvirc.net/");
-    exit(1);
 }
 
 #define CRLF "/r/n"
@@ -130,8 +150,6 @@ int main() {
         sleep(1);
     }
     bzero(BUFFER, 1024);
-    // send_message(sockfd, (("NICK " + std::string(NICK)) + "\r\n").c_str());
-    // send_message(sockfd, (("USER " + std::string(USER) + " 0 * :" + std::string(REALNAME)) + "\r\n").c_str());
 
     // Join the channel
     bzero(BUFFER, 1024);
@@ -144,35 +162,66 @@ int main() {
     // Send a message to the channel
     send_message(sockfd, (("PRIVMSG " + std::string(bot.getChannel()) + " :Hello, I'm a bot!") + "\r\n").c_str());
     // Receive and process messages (loop)
+    
+    //INITIALIZE SET TO MONITOR FOR READABILITY
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(sockfd, &readfds);
+    FD_SET(STDIN_FILENO, &readfds);
+    
+    int maxfd = sockfd > STDIN_FILENO ? sockfd : STDIN_FILENO;
+    
     char buffer[1024];
     while (true) {
         bzero(buffer, 1024);
-        std::cout << signalState << std::endl;
-        // if (signalState == true)
-        // {
-        //     std::cout << "please quit" << std::endl;
-        //     send_message(sockfd, "QUIT :KVIrc 5.0.0 Aria http://www.kvirc.net/");
-        //     exit(1);
-        //     break;
-        // }
-        int bytesReceived = recv(sockfd, buffer, 1024, 0);
-        if (bytesReceived < 0) {
-            std::cerr << "Error receiving data" << std::endl;
-            close(sockfd);
-            return 1;
-        } else if (bytesReceived == 0) {
-            std::cout << "Disconnected from server" << std::endl;
-            close(sockfd);
-            return 0;
-        } else {
-            // Process received data (parse IRC messages, handle commands, etc.)
-            buffer[bytesReceived] = '\0'; // Null-terminate the received data
-            std::string received = buffer;
-            std::cout << "Received: " << received << std::endl;
-            std::string opString = checkOPME(&bot, received);
-            if (opString != "")
-                send_message(sockfd, opString.c_str());
+        
+        // Wait for activity on any of the monitored file descriptors
+        int activity = select(maxfd + 1, &readfds, NULL, NULL, NULL);
+        
+        if (activity < 0) {
+            if (errno == EINTR) {
+                // This indicates that the select call was interrupted by a signal
+                std::cout << "Received signal, exiting gracefully..." << std::endl;
+                send_message(sockfd, "QUIT :KVIrc 5.0.0 Aria http://www.kvirc.net/");
+                close(sockfd);
+                return 0;
+            } else {
+                // Another error occurred
+                std::cerr << "Error in select: " << strerror(errno) << std::endl;
+                close(sockfd);
+                return 1;
+            }
         }
+        if (FD_ISSET(sockfd, &readfds)) {
+            // Receive and process data from the socket
+            // (Code for receiving and processing data from the socket goes here)
+            int bytesReceived = recv(sockfd, buffer, 1024, 0);
+            int receiveStatus = handleReceive(&bot, bytesReceived, buffer);
+            if (receiveStatus == 1)
+                return 1;
+            // if (bytesReceived < 0) {
+            // std::cerr << "Error receiving data" << std::endl;
+            // close(sockfd);
+            // return 1;
+            // } else if (bytesReceived == 0) {
+            //     std::cout << "Disconnected from server" << std::endl;
+            //     close(sockfd);
+            //     return 0;
+            // } else {
+            //     // Process received data (parse IRC messages, handle commands, etc.)
+            //     buffer[bytesReceived] = '\0'; // Null-terminate the received data
+            //     std::string received = buffer;
+            //     std::cout << "Received: " << received << std::endl;
+            //     std::string opString = checkOPME(&bot, received);
+            //     if (opString != "")
+            //         send_message(sockfd, opString.c_str());
+            // }
+        }
+        // int bytesReceived = recv(sockfd, buffer, 1024, 0);
+        // Clear the file descriptor set for the next iteration
+        FD_ZERO(&readfds);
+        FD_SET(sockfd, &readfds);
+        FD_SET(STDIN_FILENO, &readfds);
     }
 
     close(sockfd);
